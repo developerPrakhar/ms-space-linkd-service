@@ -3,6 +3,7 @@ import { AuthServiceService } from './auth-service.service';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { SignupDTO } from './dto/signup.dto';
 import { LoginDTO } from './dto/login.dto';
+import { responseService } from 'utils/formatResponse';
 
 @Controller()
 export class AuthServiceController {
@@ -41,6 +42,25 @@ export class AuthServiceController {
       return {
         ok: false,
         message: err?.message || 'Error logging in user',
+        status: err?.status || 500,
+      };
+    }
+  }
+
+  @MessagePattern('getUserByEmail')
+  async getUserByEmail(@Payload() email: string) {
+    try {
+      const resp = await this.authServiceService.getUserByEmail(email);
+
+      return responseService.formatSuccessResponse(
+        'User fetched successfully',
+        resp,
+      );
+    } catch (err) {
+      console.error('AuthServiceController getUserByEmail error', err);
+      return {
+        ok: false,
+        message: err?.message || 'error fetching user by email',
         status: err?.status || 500,
       };
     }

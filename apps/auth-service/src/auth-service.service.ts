@@ -6,11 +6,15 @@ import * as bcrypt from 'bcrypt';
 import { LoginDTO } from './dto/login.dto';
 import { User } from './interfaces/user.interface';
 import * as jwt from 'jsonwebtoken';
+import { QueryBuilder } from '../../../utils/queryBuilder';
 
 @Injectable()
 export class AuthServiceService {
   private readonly logger = new Logger(AuthServiceService.name);
-  constructor(@Inject('MYSQL_POOL') private readonly pool: Pool) {}
+  constructor(
+    @Inject('MYSQL_POOL') private readonly pool: Pool,
+    private readonly queryBuilder: QueryBuilder,
+  ) {}
 
   async signup(dto: SignupDTO) {
     this.logger.log(
@@ -56,6 +60,14 @@ export class AuthServiceService {
         process.env.JWT_SECRET,
         { expiresIn: Number(process.env.JWT_EXPIRES_IN) || '1h' },
       );
+      const resp = {
+        user: {
+          access_token: token,
+          id: user.id,
+          email: user.email,
+          name: user.name,
+        },
+      };
       return {
         access_token: token,
         user: {
@@ -82,6 +94,29 @@ export class AuthServiceService {
       return (rows as Omit<User, 'password'>[])[0] || null;
     } catch (err) {
       this.logger.error('Error in AuthServiceService getUserById:', err);
+      throw {
+        message: err.message,
+        status: 500,
+      };
+    }
+  }
+
+  async getUserByEmail(email: string) {
+    this.logger.log(
+      `🚀 ~ AuthServiceService ~ getUserByEmail Method invoked with email: ${email}`,
+    );
+    try {
+      const qb = new QueryBuilder().append(
+        'SELECT * FROM users WHERE email = ?',
+        [email],
+      );
+      const build = qb.build();
+      const [rows] = await this.pool.query(build.sql, build.args);
+      const user = (rows as User[])[0];
+      const { password, ...data } = user;
+      return data;
+    } catch (err) {
+      this.logger.error('Error in AuthServiceService getUserByEmail:', err);
       throw {
         message: err.message,
         status: 500,

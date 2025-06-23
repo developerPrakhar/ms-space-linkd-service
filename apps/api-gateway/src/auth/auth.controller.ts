@@ -17,5 +17,8 @@ export class AuthController {
     return this.authService.login(dto);
   }
 
-
+  @Get('user/:email')
+  async getUserByEmail(@Param('email') email: string) {
+    return this.authService.getUserByEmail(email);
+  }
 }

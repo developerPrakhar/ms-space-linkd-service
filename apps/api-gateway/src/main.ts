@@ -7,7 +7,7 @@ async function bootstrap() {
   const logger = new Logger();
 
   app.enableCors();
-  await app.listen(3002);
+  await app.listen(3002, '0.0.0.0');
   logger.localInstance.log(`api-gateway listening on port: 3002 🚀 `);
 }
 bootstrap();

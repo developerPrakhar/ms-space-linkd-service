@@ -1,0 +1,88 @@
+version: '3.8'
+services:
+ auth-mysql:
+   image: mysql:8
+   environment:
+     MYSQL_ROOT_PASSWORD: root
+     MYSQL_DATABASE: space_linkd_auth_db
+   ports:
+     - '3307:3306'
+   networks:
+    - ms-network
+   volumes:
+     - './apps/auth-service/src//migrations/init.sql:/docker-entrypoint-initdb.d/init.sqls'
+   healthcheck:
+     test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
+     interval: 5s
+     timeout: 5s
+     retries: 10
+ 
+ property-mysql:
+   image: mysql:8
+   environment:
+     MYSQL_ROOT_PASSWORD: root
+     MYSQL_DATABASE: space_linkd_property_db
+   networks:
+    - ms-network
+   volumes:
+     - './apps/auth-service/src//migrations/init.sql:/docker-entrypoint-initdb.d/init.sqls'
+   healthcheck:
+     test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
+     interval: 5s
+     timeout: 5s
+     retries: 10
+  
+ auth-service:
+   build:
+     context: .
+     dockerfile: apps/auth-service/Dockerfile
+   environment:
+     MYSQL_AUTH_HOST: auth-mysql
+     MYSQL_AUTH_PORT: 3306
+     MYSQL_AUTH_USER: root
+     MYSQL_AUTH_PASSWORD: root
+     MYSQL_AUTH_DATABASE: space_linkd_auth_db
+   ports:
+     - '3000:3000'
+   depends_on:
+     auth-mysql:
+       condition: service_healthy
+   networks:
+     - ms-network
+
+
+ property-service:
+   build:
+     context: .
+     dockerfile: apps/property-service/Dockerfile
+   environment:
+     MYSQL_PROPERTY_HOST: property-mysql
+     MYSQL_PROPERTY_PORT: 3306
+     MYSQL_PROPERTY_USER: root
+     MYSQL_PROPERTY_PASSWORD: root
+     MYSQL_PROPERTY_DATABASE: space_linkd_property_db
+   ports:
+     - '3001:3001'
+   depends_on:
+     property-mysql:
+       condition: service_healthy
+   networks:
+     - ms-network
+
+
+ api-gateway:
+   build:
+     context: .
+     dockerfile: apps/api-gateway/Dockerfile
+   ports:
+     - '3002:3002'
+   depends_on:
+     - auth-service
+     - property-service
+   networks:
+     - ms-network
+
+
+networks:
+ ms-network:
+   driver: bridge

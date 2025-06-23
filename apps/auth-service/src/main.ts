@@ -9,7 +9,7 @@ async function bootstrap() {
 
   const app = await NestFactory.createMicroservice<MicroserviceOptions>(
     AuthServiceModule,
-    { transport: Transport.TCP, options: { host: '127.0.0.1', port: 3000 } },
+    { transport: Transport.TCP, options: { host: '0.0.0.0', port: 3000 } },
   );
 
   await app.listen();
